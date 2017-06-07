@@ -54,7 +54,7 @@ Dism /Mount-Image /ImageFile:$_winPepsiWim /index:1 /MountDir:$winPepsi
 
 <# ====== 2.1 Add optional Windows features ===================================================== #>
 
-# Add optional components (Powershell) to WinPE
+# Add optional components (Powershell etc.) to WinPE
 $_components = "WMI", "NetFX", "Scripting", "PowerShell", "DismCmdlets", "StorageWMI"
 $_components | % { 
     Dism /Add-Package /Image:$winPepsi /PackagePath:"$WinPE\amd64\WinPE_OCs\WinPE-${_}.cab" 
@@ -65,6 +65,7 @@ $_components | % {
 # Check resulting set of components in WinPE image
 Dism /Get-Packages /Image:$winPepsi
 
+<#
 if (Test-Path $_winPepsiMicrosoftOnly) {
   Write-Host "$_winPepsiMicrosoftOnly exists: skipping new copy" -foreground yellow
 } else {
@@ -73,13 +74,14 @@ if (Test-Path $_winPepsiMicrosoftOnly) {
   Copy-Item $_winPepsiWim $_winPepsiMicrosoftOnly
   Dism /Mount-Image /ImageFile:$_winPepsiWim /index:1 /MountDir:$winPepsi
 }
-
+#>
 
 
 <# ====== 2.2 Add 3rd party assets to WinPEpsi ================================================== #>
 
 # Download some assets for injection to WinPE
 $_remoteAssets = @{ 
+  "7-zip" = '7z1604-x64.zip', '7-zip', 'http://www.7-zip.org/a/7z1604-x64.exe';
   "Double Commander" = 'doublecmd-0.7.8.x86_64-win64.zip', 'oneleveldown\..', 'https://freefr.dl.sourceforge.net/project/doublecmd/DC%20for%20Windows%2064%20bit/Double%20Commander%200.7.8%20beta/doublecmd-0.7.8.x86_64-win64.zip'; 
   "RapidEE" = 'RapidEEx64.zip', 'RapidEE', 'https://www.rapidee.com/download/archive/936/RapidEEx64.zip'; 
   "OEM Info Updater" = 'OEM_Info_Updater_8.0.zip', 'OEMinfoUpdater', 'http://oemsky.net/oeminfoupdater/OEM_Info_Updater_8.0.zip'
@@ -124,8 +126,12 @@ Copy-Item $_localAssets -Destination $_assetDestRoot -Recurse -Force
 
 # Place startup commands to %SystemRoot%\System32\Startnet.cmd
 $_winPEstartScript = "${winPepsi}\Windows\System32\Startnet.cmd"
-$_customStartup = "${PSScriptRoot}\startnet_append.cmd"
-Get-Content $_customStartup | Set-Content -Path $_winPEstartScript -Encoding ASCII -Force
+$_customStartup = "${PSScriptRoot}\startnet.cmd"
+Copy-Item $_customStartup $_winPEstartScript -Force
+#Get-Content $_customStartup | Set-Content -Path $_winPEstartScript -Encoding ASCII -Force
+
+
+
 Copy-Item "${PSScriptRoot}\Unattend-PE.xml" -Destination $winPepsi
 
 
